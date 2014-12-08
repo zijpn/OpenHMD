@@ -12,6 +12,7 @@
 
 #include "openhmd.h"
 #include "omath.h"
+#include "platform.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -92,8 +93,10 @@ struct ohmd_context {
 	ohmd_device* active_devices[256];
 	int num_active_devices;
 
-	char error_msg[OHMD_STR_SIZE];
+	ohmd_mutex* mutex; 
 };
+
+extern OHMD_THREAD_LOCAL char ohmd_error_msg[OHMD_STR_SIZE];
 
 // helper functions
 void ohmd_set_default_device_properties(ohmd_device_properties* props);
@@ -104,7 +107,6 @@ ohmd_driver* ohmd_create_dummy_drv(ohmd_context* ctx);
 ohmd_driver* ohmd_create_oculus_rift_drv(ohmd_context* ctx);
 
 #include "log.h"
-#include "platform.h"
 #include "omath.h"
 #include "fusion.h"
 

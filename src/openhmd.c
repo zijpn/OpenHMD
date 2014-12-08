@@ -12,12 +12,21 @@
 #include <string.h>
 #include <stdio.h>
 
+static OHMD_THREAD_LOCAL char thread_str[OHMD_STR_SIZE];
+OHMD_THREAD_LOCAL char ohmd_error_msg[OHMD_STR_SIZE];
 
 ohmd_context* OHMD_APIENTRY ohmd_ctx_create()
 {
 	ohmd_context* ctx = calloc(1, sizeof(ohmd_context));
 	if(!ctx){
 		LOGE("could not allocate RAM for context");
+		return NULL;
+	}
+
+	ctx->mutex = ohmd_create_mutex(ctx);
+
+	if(ctx->mutex == NULL){
+		free(ctx);
 		return NULL;
 	}
 
@@ -31,6 +40,8 @@ ohmd_context* OHMD_APIENTRY ohmd_ctx_create()
 
 void OHMD_APIENTRY ohmd_ctx_destroy(ohmd_context* ctx)
 {
+	ohmd_lock_mutex(ctx->mutex);
+
 	for(int i = 0; i < ctx->num_active_devices; i++){
 		ctx->active_devices[i]->close(ctx->active_devices[i]);
 	}
@@ -39,49 +50,77 @@ void OHMD_APIENTRY ohmd_ctx_destroy(ohmd_context* ctx)
 		ctx->drivers[i]->destroy(ctx->drivers[i]);
 	}
 
+	ohmd_unlock_mutex(ctx->mutex);
+
+	ohmd_destroy_mutex(ctx->mutex);
+
 	free(ctx);
 }
 
 void OHMD_APIENTRY ohmd_ctx_update(ohmd_context* ctx)
 {
+	ohmd_lock_mutex(ctx->mutex);
+
 	for(int i = 0; i < ctx->num_active_devices; i++)
 		ctx->active_devices[i]->update(ctx->active_devices[i]);
+	
+	ohmd_unlock_mutex(ctx->mutex);
 }
 
 const char* OHMD_APIENTRY ohmd_ctx_get_error(ohmd_context* ctx)
 {
-	return ctx->error_msg;
+	return ohmd_error_msg;
 }
 
 int OHMD_APIENTRY ohmd_ctx_probe(ohmd_context* ctx)
 {
+	ohmd_lock_mutex(ctx->mutex);
+
 	memset(&ctx->list, 0, sizeof(ohmd_device_list));
 	for(int i = 0; i < ctx->num_drivers; i++){
 		ctx->drivers[i]->get_device_list(ctx->drivers[i], &ctx->list);
 	}
 
-	return ctx->list.num_devices;
+	int num_devices = ctx->list.num_devices;
+
+	ohmd_unlock_mutex(ctx->mutex);
+
+	return num_devices;
 }
 
 const char* OHMD_APIENTRY ohmd_list_gets(ohmd_context* ctx, int index, ohmd_string_value type)
 {
-	if(index >= ctx->list.num_devices)
+	ohmd_lock_mutex(ctx->mutex);
+
+	if(index >= ctx->list.num_devices){
+		ohmd_unlock_mutex(ctx->mutex);
 		return NULL;
+	}
 
 	switch(type){
 	case OHMD_VENDOR:
-		return ctx->list.devices[index].vendor;
+		strncpy(thread_str, ctx->list.devices[index].vendor, OHMD_STR_SIZE);
+		break;
 	case OHMD_PRODUCT:
-		return ctx->list.devices[index].product;
+		strncpy(thread_str, ctx->list.devices[index].product, OHMD_STR_SIZE);
+		break;
 	case OHMD_PATH:
-		return ctx->list.devices[index].path;
+		strncpy(thread_str, ctx->list.devices[index].path, OHMD_STR_SIZE);
+		break;
 	default:
+		ohmd_unlock_mutex(ctx->mutex);
 		return NULL;
 	}
+		
+	ohmd_unlock_mutex(ctx->mutex);
+
+	return thread_str;
 }
 
 ohmd_device* OHMD_APIENTRY ohmd_list_open_device(ohmd_context* ctx, int index)
 {
+	ohmd_lock_mutex(ctx->mutex);
+
 	if(index >= 0 && index < ctx->list.num_devices){
 
 		ohmd_device_desc* desc = &ctx->list.devices[index];
@@ -90,16 +129,22 @@ ohmd_device* OHMD_APIENTRY ohmd_list_open_device(ohmd_context* ctx, int index)
 
 		device->rotation_correction.w = 1;
 
-		if (device == NULL)
+		if (device == NULL){
+			ohmd_unlock_mutex(ctx->mutex);
 			return NULL;
+		}
 
 		device->ctx = ctx;
 		device->active_device_idx = ctx->num_active_devices;
 		ctx->active_devices[ctx->num_active_devices++] = device;
+		
+		ohmd_unlock_mutex(ctx->mutex);
 		return device;
 	}
 
-	ohmd_set_error(ctx, "no device with index: %d", index);
+	ohmd_set_error("no device with index: %d", index);
+	
+	ohmd_unlock_mutex(ctx->mutex);
 	return NULL;
 }
 
@@ -269,23 +314,30 @@ int OHMD_APIENTRY ohmd_device_setf(ohmd_device* device, ohmd_float_value type, f
 
 int OHMD_APIENTRY ohmd_device_geti(ohmd_device* device, ohmd_int_value type, int* out)
 {
+	ohmd_lock_mutex(device->ctx->mutex);
+
 	switch(type){
-	case OHMD_SCREEN_HORIZONTAL_RESOLUTION:
-		*out = device->properties.hres;
-		return 0;
-	case OHMD_SCREEN_VERTICAL_RESOLUTION:
-		*out = device->properties.vres;
-		return 0;
-	default:
-		return -1;
+		case OHMD_SCREEN_HORIZONTAL_RESOLUTION:
+			*out = device->properties.hres;
+			break;
+		case OHMD_SCREEN_VERTICAL_RESOLUTION:
+			*out = device->properties.vres;
+			break;
+		default:
+			ohmd_unlock_mutex(device->ctx->mutex);
+			ohmd_set_error("no such integer value type: %d", type);
+			return -1;
 	}
+
+	ohmd_unlock_mutex(device->ctx->mutex);
+	return 0;
 }
 
-void* ohmd_allocfn(ohmd_context* ctx, char* e_msg, size_t size)
+void* ohmd_allocfn(char* e_msg, size_t size)
 {
 	void* ret = calloc(1, size);
 	if(!ret)
-		ohmd_set_error(ctx, "%s", e_msg);
+		ohmd_set_error("%s", e_msg);
 	return ret;
 }
 

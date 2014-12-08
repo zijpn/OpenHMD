@@ -63,7 +63,7 @@ static void set_coordinate_frame(rift_priv* priv, rift_coordinate_frame coordfra
 	unsigned char buf[FEATURE_BUFFER_SIZE];
 	int size = encode_sensor_config(buf, &priv->sensor_config);
 	if(send_feature_report(priv, buf, size) == -1){
-		ohmd_set_error(priv->base.ctx, "send_feature_report failed in set_coordinate frame");
+		ohmd_set_error("send_feature_report failed in set_coordinate frame");
 		return;
 	}
 
@@ -170,7 +170,7 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		break;
 
 	default:
-		ohmd_set_error(priv->base.ctx, "invalid type given to getf (%d)", type);
+		ohmd_set_error("invalid type given to getf (%d)", type);
 		return -1;
 		break;
 	}
@@ -188,7 +188,7 @@ static void close_device(ohmd_device* device)
 
 static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 {
-	rift_priv* priv = ohmd_alloc(driver->ctx, sizeof(rift_priv));
+	rift_priv* priv = ohmd_alloc(sizeof(rift_priv));
 	if(!priv)
 		goto cleanup;
 
@@ -201,7 +201,7 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 		goto cleanup;
 	
 	if(hid_set_nonblocking(priv->handle, 1) == -1){
-		ohmd_set_error(driver->ctx, "failed to set non-blocking on device");
+		ohmd_set_error("failed to set non-blocking on device");
 		goto cleanup;
 	}
 
@@ -324,7 +324,7 @@ static void destroy_driver(ohmd_driver* drv)
 
 ohmd_driver* ohmd_create_oculus_rift_drv(ohmd_context* ctx)
 {
-	ohmd_driver* drv = ohmd_alloc(ctx, sizeof(ohmd_driver));
+	ohmd_driver* drv = ohmd_alloc(sizeof(ohmd_driver));
 	if(drv == NULL)
 		return NULL;
 

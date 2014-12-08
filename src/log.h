@@ -10,8 +10,8 @@
 #ifndef LOG_H
 #define LOG_H
 
-void* ohmd_allocfn(ohmd_context* ctx, char* e_msg, size_t size);
-#define ohmd_alloc(_ctx, _size) ohmd_allocfn(_ctx, "could not allocate " #_size " bytes of RAM @ " __FILE__ ":" OHMD_STRINGIFY(__LINE__), _size)
+void* ohmd_allocfn(char* e_msg, size_t size);
+#define ohmd_alloc(_size) ohmd_allocfn("could not allocate " #_size " bytes of RAM @ " __FILE__ ":" OHMD_STRINGIFY(__LINE__), _size)
 
 #ifndef LOGLEVEL
 #define LOGLEVEL 2
@@ -34,6 +34,6 @@ void* ohmd_allocfn(ohmd_context* ctx, char* e_msg, size_t size);
 #define snprintf _snprintf
 #endif
 
-#define ohmd_set_error(_ctx, ...) { snprintf((_ctx)->error_msg, OHMD_STR_SIZE, __VA_ARGS__); LOGE(__VA_ARGS__); }
+#define ohmd_set_error(...) { snprintf(ohmd_error_msg, OHMD_STR_SIZE, __VA_ARGS__); LOGE(__VA_ARGS__); }
 
 #endif

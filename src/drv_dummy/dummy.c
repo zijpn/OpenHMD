@@ -20,7 +20,7 @@ static void update_device(ohmd_device* device)
 
 static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 {
-	dummy_priv* priv = (dummy_priv*)device;
+	//dummy_priv* priv = (dummy_priv*)device;
 
 	switch(type){
 	case OHMD_ROTATION_QUAT: 
@@ -38,7 +38,7 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		break;
 
 	default:
-		ohmd_set_error(priv->base.ctx, "invalid type given to getf (%d)", type);
+		ohmd_set_error("invalid type given to getf (%d)", type);
 		return -1;
 		break;
 	}
@@ -54,7 +54,7 @@ static void close_device(ohmd_device* device)
 
 static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 {
-	dummy_priv* priv = ohmd_alloc(driver->ctx, sizeof(dummy_priv));
+	dummy_priv* priv = ohmd_alloc(sizeof(dummy_priv));
 	if(!priv)
 		return NULL;
 	
@@ -103,7 +103,7 @@ static void destroy_driver(ohmd_driver* drv)
 
 ohmd_driver* ohmd_create_dummy_drv(ohmd_context* ctx)
 {
-	ohmd_driver* drv = ohmd_alloc(ctx, sizeof(ohmd_driver));
+	ohmd_driver* drv = ohmd_alloc(sizeof(ohmd_driver));
 	if(!drv)
 		return NULL;
 
