@@ -28,6 +28,7 @@ set(openhmd_source_files
 OPTION(OPENHMD_DRIVER_OCULUS_RIFT "Oculus Rift DK1 and DK2" ON)
 OPTION(OPENHMD_DRIVER_EXTERNAL "External sensor driver" ON)
 OPTION(OPENHMD_DRIVER_ANDROID "General Android driver" OFF)
+OPTION(OPENHMD_DRIVER_IOS "General iOS driver" OFF)
 
 if(OPENHMD_DRIVER_OCULUS_RIFT)
 	set(openhmd_source_files ${openhmd_source_files} 
@@ -54,6 +55,13 @@ if (OPENHMD_DRIVER_ANDROID)
 	)
 	add_definitions(-DDRIVER_ANDROID)
 endif(OPENHMD_DRIVER_ANDROID)
+
+if (OPENHMD_DRIVER_IOS)
+	set(openhmd_source_files ${openhmd_source_files} 
+	${CMAKE_CURRENT_LIST_DIR}/src/drv_ios/ios.c
+	)
+	add_definitions(-DDRIVER_IOS)
+endif(OPENHMD_DRIVER_IOS)
 
 add_library(openhmd ${openhmd_source_files} ${LIBS})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_DIR}/)
