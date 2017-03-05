@@ -41,9 +41,8 @@ if BUILD_DRIVER_HTC_VIVE
 
 libopenhmd_la_SOURCES += \
 	drv_htc_vive/vive.c \
-	drv_htc_vive/packet.c \
-	ext_deps/mjson.c
-
+	drv_htc_vive/packet.c
+	
 libopenhmd_la_CPPFLAGS += $(hidapi_CFLAGS) -DDRIVER_HTC_VIVE
 libopenhmd_la_LDFLAGS += $(hidapi_LIBS)
 
