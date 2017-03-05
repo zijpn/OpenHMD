@@ -13,7 +13,7 @@ libopenhmd_la_SOURCES = \
 	queue.c
 
 libopenhmd_la_LDFLAGS = -no-undefined -version-info 0:0:0
-libopenhmd_la_CPPFLAGS = -fPIC -I$(top_srcdir)/include -Wall 
+libopenhmd_la_CPPFLAGS = -fPIC -I$(top_srcdir)/include -Wall
 
 if BUILD_DRIVER_OCULUS_RIFT
 
@@ -33,6 +33,15 @@ libopenhmd_la_SOURCES += \
 	drv_deepoon/packet.c
 
 libopenhmd_la_CPPFLAGS += $(hidapi_CFLAGS) -DDRIVER_DEEPOON
+
+if BUILD_DRIVER_HTC_VIVE
+
+libopenhmd_la_SOURCES += \
+	drv_htc_vive/vive.c \
+	drv_htc_vive/packet.c \
+	ext_deps/mjson.c
+
+libopenhmd_la_CPPFLAGS += $(hidapi_CFLAGS) -DDRIVER_HTC_VIVE
 libopenhmd_la_LDFLAGS += $(hidapi_LIBS)
 
 endif

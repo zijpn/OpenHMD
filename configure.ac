@@ -58,6 +58,15 @@ AC_ARG_ENABLE([driver-psvr],
 
 AM_CONDITIONAL([BUILD_DRIVER_PSVR], [test "x$driver_psvr_enabled" != "xno"])
 
+# HTC Vive driver
+AC_ARG_ENABLE([driver-htc-vive],
+        [AS_HELP_STRING([--disable-driver-htc-vive],
+                [disable building of HTC Vive driver [default=yes]])],
+        [driver_htc_vive_enabled=$enableval],
+        [driver_htc_vive_enabled='yes'])
+
+AM_CONDITIONAL([BUILD_DRIVER_HTC_VIVE], [test "x$driver_htc_vive_enabled" != "xno"])
+
 # External Driver
 AC_ARG_ENABLE([driver-external],
         [AS_HELP_STRING([--disable-driver-external],
@@ -86,6 +95,10 @@ AS_IF([test "x$driver_deepoon_enabled" != "xno"],
 
 # Libs required by Sony PSVR Driver
 AS_IF([test "x$driver_psvr_enabled" != "xno"],
+	[PKG_CHECK_MODULES([hidapi], [$hidapi] >= 0.0.5)])
+
+# Libs required by HTC Vive Driver
+AS_IF([test "x$driver_htc_vive_enabled" != "xno"],
 	[PKG_CHECK_MODULES([hidapi], [$hidapi] >= 0.0.5)])
 
 # Do we build OpenGL example?

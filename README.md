@@ -7,6 +7,8 @@ OpenHMD is released under the permissive Boost Software License (see LICENSE for
 ## Supported Devices
   * Oculus Rift DK1, DK2 and CV1 (rotation only)
   * Deepoon E2
+  * HTC Vive (In Development)
+  * PSVR
   * Android based devices
   * External Sensor (passthrough for external sensors)
 
@@ -60,9 +62,11 @@ To avoid having to run your applications as root to access USB devices you have 
 as root, run:
 
     echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="2833", MODE="0666", GROUP="plugdev"' > /etc/udev/rules.d/83-hmd.rules
+    echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", MODE="0666", GROUP="plugdev"' >> /etc/udev/rules.d/83-hmd.rules
+    echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="28de", MODE="0666", GROUP="plugdev"' >> /etc/udev/rules.d/83-hmd.rules
     udevadm control --reload-rules
 
-After this you have to unplug your Rift and plug it back in. You should now be able to access the Oculus Rift as a normal user.
+After this you have to unplug your device and plug it back in. You should now be able to access the HMD as a normal user.
 
 ### Compiling on Windows
 CMake has a lot of generators available for IDE's and build systems.
