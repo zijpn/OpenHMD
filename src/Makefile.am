@@ -33,6 +33,9 @@ libopenhmd_la_SOURCES += \
 	drv_deepoon/packet.c
 
 libopenhmd_la_CPPFLAGS += $(hidapi_CFLAGS) -DDRIVER_DEEPOON
+libopenhmd_la_LDFLAGS += $(hidapi_LIBS)
+
+endif
 
 if BUILD_DRIVER_HTC_VIVE
 
