@@ -110,9 +110,11 @@ if (OPENHMD_EXAMPLE_SDL)
 	add_subdirectory(./examples/opengl)
 endif (OPENHMD_EXAMPLE_SDL)
 
-if (UNIX)
+if (APPLE)
+	set(LIBS ${LIBS} pthread)
+elseif (UNIX)
 	set(LIBS ${LIBS} rt pthread)
-endif (UNIX)
+endif ()
 
 link_libraries(${LIBS})
 add_library(openhmd-shared SHARED ${openhmd_source_files})
