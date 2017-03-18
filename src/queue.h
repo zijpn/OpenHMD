@@ -10,9 +10,9 @@
 #define OHMDQUEUE_H
 
 #include <stdbool.h>
+#include "openhmd.h"
 
 typedef struct ohmdq ohmdq;
-typedef struct ohmd_context ohmd_context;
 
 ohmdq* ohmdq_create(ohmd_context* ctx, unsigned elem_size, unsigned max);
 void ohmdq_destroy(ohmdq* me);

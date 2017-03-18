@@ -37,7 +37,7 @@ ohmd_context* OHMD_APIENTRY ohmd_ctx_create(void)
 #if DRIVER_PSVR
 	ctx->drivers[ctx->num_drivers++] = ohmd_create_psvr_drv(ctx);
 #endif
-	
+
 #if DRIVER_HTC_VIVE
 	ctx->drivers[ctx->num_drivers++] = ohmd_create_htc_vive_drv(ctx);
 #endif
@@ -223,7 +223,7 @@ int OHMD_APIENTRY ohmd_close_device(ohmd_device* device)
 		sizeof(ohmd_device*) * (ctx->num_active_devices - idx - 1));
 
 	device->close(device);
-	
+
 	if(dinq)
 		ohmdq_destroy(dinq);
 
@@ -328,13 +328,13 @@ static int ohmd_device_getf_unp(ohmd_device* device, ohmd_float_value type, floa
 		for (int i = 0; i < 4; i++) {
 			out[i] = device->properties.universal_distortion_k[i];
 		}
-		break;
+		return OHMD_S_OK;
 	}
 	case OHMD_UNIVERSAL_ABERRATION_K: {
 		for (int i = 0; i < 3; i++) {
 			out[i] = device->properties.universal_aberration_k[i];
 		}
-		break;
+		return OHMD_S_OK;
 	}
 	default:
 		return device->getf(device, type, out);
