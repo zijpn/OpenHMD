@@ -10,7 +10,7 @@
 #ifndef GL_H
 #define GL_H
 
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 
 #include <GL/glew.h>
 #ifdef __APPLE__
@@ -21,7 +21,8 @@
 
 typedef struct {
 	int w, h;
-	SDL_Surface* screen;
+	SDL_Window* window;
+	SDL_GLContext context;
 } gl_ctx;
 
 void ortho(gl_ctx* ctx);

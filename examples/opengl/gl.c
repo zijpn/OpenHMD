@@ -24,22 +24,26 @@ void init_gl(gl_ctx* ctx, int w, int h)
 	memset(ctx, 0, sizeof(gl_ctx));
 
 	// == Initialize SDL ==
-	int ret = SDL_Init(SDL_INIT_EVERYTHING);
+	int ret = SDL_Init(SDL_INIT_VIDEO);
 	if(ret < 0){
 		printf("SDL_Init failed\n");
 		exit(-1);
 	}
 
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
-
-	ctx->screen = SDL_SetVideoMode(w, h, 0, SDL_OPENGL | SDL_GL_DOUBLEBUFFER);
-	if(ctx->screen == NULL){
-		printf("SDL_SetVideoMode failed\n");
+	ctx->window = SDL_CreateWindow("openglexample",
+		SDL_WINDOWPOS_CENTERED,
+		SDL_WINDOWPOS_CENTERED,
+		w, h, SDL_WINDOW_OPENGL);
+	if(ctx->window == NULL){
+		printf("SDL_CreateWindow failed\n");
 		exit(-1);
 	}
+	ctx->context = SDL_GL_CreateContext(ctx->window);
 
-	// Disable ctrl-c catching on linux (and OS X?) 
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	// SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
+
+	// Disable ctrl-c catching on linux (and OS X?)
 	#ifdef __unix
 	signal(SIGINT, SIG_DFL);
 	#endif
@@ -49,7 +53,7 @@ void init_gl(gl_ctx* ctx, int w, int h)
 
 	printf("OpenGL Renderer: %s\n", glGetString(GL_RENDERER));
 	printf("OpenGL Vendor: %s\n", glGetString(GL_VENDOR));
-	printf("OpenGL Version: %s\n", glGetString(GL_VERSION)); 
+	printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
 
 	// == Initialize OpenGL ==
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -66,10 +70,10 @@ void init_gl(gl_ctx* ctx, int w, int h)
 	glLoadIdentity();
 
 	glMatrixMode(GL_PROJECTION);
-	glEnable(GL_POLYGON_SMOOTH); 
+	glEnable(GL_POLYGON_SMOOTH);
 	glLoadIdentity();
 
-	glViewport(0, 0, ctx->screen->w, ctx->screen->h);
+	glViewport(0, 0, w, h);
 }
 
 void ortho(gl_ctx* ctx)
@@ -78,11 +82,11 @@ void ortho(gl_ctx* ctx)
 	//glPushMatrix();
 	glLoadIdentity();
 
-	glOrtho(0.0f, ctx->screen->w, ctx->screen->h, 0.0f, -1.0f, 1.0f);
+	glOrtho(0.0f, ctx->w, ctx->h, 0.0f, -1.0f, 1.0f);
 	glMatrixMode(GL_MODELVIEW);
 	//glPushMatrix();
 	glLoadIdentity();
-	
+
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_DEPTH);
 

@@ -171,6 +171,7 @@ int main(int argc, char** argv)
 
 
 	bool done = false;
+	bool fullScreen = false;
 	while(!done){
 		ohmd_ctx_update(ctx);
 
@@ -179,12 +180,14 @@ int main(int argc, char** argv)
 			if(event.type == SDL_KEYDOWN){
 				switch(event.key.keysym.sym){
 				case SDLK_ESCAPE:
+				case SDLK_q:
 					done = true;
 					break;
-				case SDLK_F1:
-					SDL_WM_ToggleFullScreen(gl.screen);
+				case SDLK_f:
+					fullScreen = !fullScreen;
+					SDL_SetWindowFullscreen(gl.window, fullScreen);
 					break;
-				case SDLK_F2:
+				case SDLK_r:
 					{
 						// reset rotation and position
 						float zero[] = {0, 0, 0, 1};
@@ -192,7 +195,7 @@ int main(int argc, char** argv)
 						ohmd_device_setf(hmd, OHMD_POSITION_VECTOR, zero);
 					}
 					break;
-				case SDLK_F3:
+				case SDLK_i:
 					{
 						float mat[16];
 						ohmd_device_getf(hmd, OHMD_LEFT_EYE_GL_PROJECTION_MATRIX, mat);
@@ -311,7 +314,7 @@ int main(int argc, char** argv)
 		glUseProgram(0);
 
 		// Da swap-dawup!
-		SDL_GL_SwapBuffers();
+		SDL_GL_SwapWindow(gl.window);
 		SDL_Delay(10);
 	}
 
