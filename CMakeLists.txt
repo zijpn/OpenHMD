@@ -18,7 +18,6 @@ endif (MSVC)
 #source files set just for Android
 set(openhmd_source_files
 	${CMAKE_CURRENT_LIST_DIR}/src/openhmd.c
-	${CMAKE_CURRENT_LIST_DIR}/src/platform-win32.c
 	${CMAKE_CURRENT_LIST_DIR}/src/drv_dummy/dummy.c
 	${CMAKE_CURRENT_LIST_DIR}/src/omath.c
 	${CMAKE_CURRENT_LIST_DIR}/src/platform-posix.c
@@ -26,6 +25,12 @@ set(openhmd_source_files
 	${CMAKE_CURRENT_LIST_DIR}/src/queue.c
 	${CMAKE_CURRENT_LIST_DIR}/src/shaders.c
 )
+
+if (MSVC)
+  set(openhmd_source_files ${openhmd_source_files}
+    ${CMAKE_CURRENT_LIST_DIR}/src/platform-win32.c
+  )
+endif (MSVC)
 
 OPTION(OPENHMD_DRIVER_OCULUS_RIFT "Oculus Rift DK1 and DK2" ON)
 OPTION(OPENHMD_DRIVER_DEEPOON "Deepoon E2" ON)
