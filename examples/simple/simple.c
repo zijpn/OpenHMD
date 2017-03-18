@@ -16,6 +16,8 @@
 #include "openhmdi.h"
 
 ohmd_context* ctx = NULL;
+char* buf[512];
+char* hmdinfo = (char*)buf;
 
 void clearscreen()
 {
@@ -43,7 +45,7 @@ void clearscreen()
 }
 
 void signalHandler(int signum) {
-	printf("Interrupt signal (%d) received.\n", signum);
+	printf("Interrupt signal (%d) received\n", signum);
 	if (ctx) {
 		ohmd_ctx_destroy(ctx);
 	}
@@ -55,7 +57,7 @@ void print_infof(ohmd_device* hmd, const char* name, int len, ohmd_float_value v
 {
 	float f[len];
 	ohmd_device_getf(hmd, val, f);
-	printf("%-25s", name);
+	printf("%-27s", name);
 	for(int i = 0; i < len; i++)
 		printf("%f ", f[i]);
 	printf("\n");
@@ -66,10 +68,50 @@ void print_infoi(ohmd_device* hmd, const char* name, int len, ohmd_int_value val
 {
 	int iv[len];
 	ohmd_device_geti(hmd, val, iv);
-	printf("%-25s", name);
+	printf("%-27s", name);
 	for(int i = 0; i < len; i++)
 		printf("%d ", iv[i]);
 	printf("\n");
+}
+
+void get_hmd_info(ohmd_device* hmd, int idx, int num_devices)
+{
+	int ivals[2];
+	float fvals[6];
+	hmdinfo += sprintf(hmdinfo, "#devices: %d\n", num_devices);
+	for(int i = 0; i < num_devices; i++){
+		hmdinfo += sprintf(hmdinfo, "  device %d: %s, %s, %s\n", i,
+			ohmd_list_gets(ctx, i, OHMD_VENDOR),
+			ohmd_list_gets(ctx, i, OHMD_PRODUCT),
+			ohmd_list_gets(ctx, i, OHMD_PATH));
+	}
+	hmdinfo += sprintf(hmdinfo, "\n");
+	hmdinfo += sprintf(hmdinfo, "device %d info\n", idx);
+	ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, ivals);
+	ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
+	hmdinfo += sprintf(hmdinfo, "  resolution:              %i x %i\n", ivals[0], ivals[1]);
+	ohmd_device_getf(hmd, OHMD_SCREEN_HORIZONTAL_SIZE, fvals);
+	hmdinfo += sprintf(hmdinfo, "  hsize:                   %f\n", fvals[0]);
+	ohmd_device_getf(hmd, OHMD_SCREEN_VERTICAL_SIZE, fvals);
+	hmdinfo += sprintf(hmdinfo, "  vsize:                   %f\n", fvals[0]);
+	ohmd_device_getf(hmd, OHMD_LENS_HORIZONTAL_SEPARATION, fvals);
+	hmdinfo += sprintf(hmdinfo, "  lens separation:         %f\n", fvals[0]);
+	ohmd_device_getf(hmd, OHMD_LENS_VERTICAL_POSITION, fvals);
+	hmdinfo += sprintf(hmdinfo, "  lens vcenter:            %f\n", fvals[0]);
+	ohmd_device_getf(hmd, OHMD_LEFT_EYE_FOV, fvals);
+	hmdinfo += sprintf(hmdinfo, "  left eye fov:            %f\n", fvals[0]);
+	ohmd_device_getf(hmd, OHMD_RIGHT_EYE_FOV, fvals);
+	hmdinfo += sprintf(hmdinfo, "  right eye fov:           %f\n", fvals[0]);
+	ohmd_device_getf(hmd, OHMD_LEFT_EYE_ASPECT_RATIO, fvals);
+	hmdinfo += sprintf(hmdinfo, "  left eye aspect:         %f\n", fvals[0]);
+	ohmd_device_getf(hmd, OHMD_RIGHT_EYE_ASPECT_RATIO, fvals);
+	hmdinfo += sprintf(hmdinfo, "  right eye aspect:        %f\n", fvals[0]);
+	ohmd_device_getf(hmd, OHMD_DISTORTION_K, fvals);
+	hmdinfo += sprintf(hmdinfo, "  distortion k:            %f %f %f %f %f %f\n", fvals[0], fvals[1], fvals[2], fvals[3], fvals[4], fvals[5]);
+	ohmd_device_geti(hmd, OHMD_BUTTON_COUNT, ivals);
+	hmdinfo += sprintf(hmdinfo, "  digital button count:    %d\n", ivals[0]);
+	// reset char pointer
+	hmdinfo = (char*)buf;
 }
 
 int main(int argc, char** argv)
@@ -86,43 +128,21 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	// Print device information
-	printf("num devices: %d\n\n", num_devices);
-	for(int i = 0; i < num_devices; i++){
-		printf("device %d\n", i);
-		printf("  vendor:  %s\n", ohmd_list_gets(ctx, i, OHMD_VENDOR));
-		printf("  product: %s\n", ohmd_list_gets(ctx, i, OHMD_PRODUCT));
-		printf("  path:    %s\n\n", ohmd_list_gets(ctx, i, OHMD_PATH));
-	}
-
 	// Open default device (0)
-	ohmd_device* hmd = ohmd_list_open_device(ctx, 0);
-
+	int idx = 0;
+	ohmd_device* hmd = ohmd_list_open_device(ctx, idx);
 	if(!hmd){
-		printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
+		printf("failed to open device %d: %s\n", idx, ohmd_ctx_get_error(ctx));
 		return -1;
 	}
 
 	// Print hardware information for the opened device
-	int ivals[2];
-	ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, ivals);
-	ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
-	printf("resolution:              %i x %i\n", ivals[0], ivals[1]);
-	print_infof(hmd, "hsize:",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
-	print_infof(hmd, "vsize:",            1, OHMD_SCREEN_VERTICAL_SIZE);
-	print_infof(hmd, "lens separation:",  1, OHMD_LENS_HORIZONTAL_SEPARATION);
-	print_infof(hmd, "lens vcenter:",     1, OHMD_LENS_VERTICAL_POSITION);
-	print_infof(hmd, "left eye fov:",     1, OHMD_LEFT_EYE_FOV);
-	print_infof(hmd, "right eye fov:",    1, OHMD_RIGHT_EYE_FOV);
-	print_infof(hmd, "left eye aspect:",  1, OHMD_LEFT_EYE_ASPECT_RATIO);
-	print_infof(hmd, "right eye aspect:", 1, OHMD_RIGHT_EYE_ASPECT_RATIO);
-	print_infof(hmd, "distortion k:",     6, OHMD_DISTORTION_K);
+	get_hmd_info(hmd, idx, num_devices);
+	int buttons = 0;
+	ohmd_device_geti(hmd, OHMD_BUTTON_COUNT, &buttons);
+	printf("%s\n", hmdinfo);
 
-	print_infoi(hmd, "digital button count:", 1, OHMD_BUTTON_COUNT);
-
-	printf("\n");
-
-	// Ask for n rotation quaternions
+	// Ask for rotation quaternions
 	while(1){
 		ohmd_ctx_update(ctx);
 
@@ -131,23 +151,21 @@ int main(int argc, char** argv)
 		ohmd_device_setf(hmd, OHMD_POSITION_VECTOR, zero);
 
 		clearscreen();
-		print_infof(hmd, "rotation quat:", 4, OHMD_ROTATION_QUAT);
-		print_infoi(hmd, "button event count:", 1, OHMD_BUTTON_EVENT_COUNT);
-
+		printf("%s\n", hmdinfo);
+		print_infof(hmd, "  rotation quat:", 4, OHMD_ROTATION_QUAT);
+		print_infoi(hmd, "  button event count:", 1, OHMD_BUTTON_EVENT_COUNT);
 		int event_count = 0;
-
 		ohmd_device_geti(hmd, OHMD_BUTTON_EVENT_COUNT, &event_count);
-
 		for(int i = 0; i < event_count; i++){
 			int event[2] = {0, 0};
 			ohmd_device_geti(hmd, OHMD_BUTTON_POP_EVENT, event);
-			printf("button %d: %s", event[0], event[1] == OHMD_BUTTON_DOWN ? "down" : "up");
+			printf("  button %d:                %s\n", event[0], event[1] == OHMD_BUTTON_DOWN ? "down" : "up");
 		}
+		printf("\nPress ^C to quit\n");
 
 		ohmd_sleep(.01);
 	}
 
 	ohmd_ctx_destroy(ctx);
-
 	return 0;
 }
