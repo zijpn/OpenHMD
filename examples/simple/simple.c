@@ -9,8 +9,46 @@
 
 #include <openhmd.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <termcap.h>
 
-void ohmd_sleep(double);
+#include "openhmdi.h"
+
+ohmd_context* ctx = NULL;
+
+void clearscreen()
+{
+#ifdef WINDOWS
+	system("cls");
+#else
+	char buf[1024];
+	char* term = getenv("TERM");
+	if (term == 0) {
+		printf("No terminal specified\n");
+		return;
+	}
+	int rc = tgetent(buf, term);
+	if (rc < 0) {
+		printf("Could not access termcap database\n");
+		return;
+	}
+	if (rc == 0) {
+		printf("Terminal type '%s' is not defined\n", term);
+		return;
+	}
+	char* str = tgetstr("cl", NULL);
+	fputs(str, stdout);
+#endif
+}
+
+void signalHandler(int signum) {
+	printf("Interrupt signal (%d) received.\n", signum);
+	if (ctx) {
+		ohmd_ctx_destroy(ctx);
+	}
+	exit(signum);
+}
 
 // gets float values from the device and prints them
 void print_infof(ohmd_device* hmd, const char* name, int len, ohmd_float_value val)
@@ -36,7 +74,10 @@ void print_infoi(ohmd_device* hmd, const char* name, int len, ohmd_int_value val
 
 int main(int argc, char** argv)
 {
-	ohmd_context* ctx = ohmd_ctx_create();
+	// register signal SIGINT and signal handler
+	signal(SIGINT, signalHandler);
+
+	ctx = ohmd_ctx_create();
 
 	// Probe for devices
 	int num_devices = ohmd_ctx_probe(ctx);
@@ -45,9 +86,8 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	printf("num devices: %d\n\n", num_devices);
-
 	// Print device information
+	printf("num devices: %d\n\n", num_devices);
 	for(int i = 0; i < num_devices; i++){
 		printf("device %d\n", i);
 		printf("  vendor:  %s\n", ohmd_list_gets(ctx, i, OHMD_VENDOR));
@@ -57,7 +97,7 @@ int main(int argc, char** argv)
 
 	// Open default device (0)
 	ohmd_device* hmd = ohmd_list_open_device(ctx, 0);
-	
+
 	if(!hmd){
 		printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
 		return -1;
@@ -68,7 +108,6 @@ int main(int argc, char** argv)
 	ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, ivals);
 	ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
 	printf("resolution:              %i x %i\n", ivals[0], ivals[1]);
-
 	print_infof(hmd, "hsize:",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
 	print_infof(hmd, "vsize:",            1, OHMD_SCREEN_VERTICAL_SIZE);
 	print_infof(hmd, "lens separation:",  1, OHMD_LENS_HORIZONTAL_SEPARATION);
@@ -78,22 +117,23 @@ int main(int argc, char** argv)
 	print_infof(hmd, "left eye aspect:",  1, OHMD_LEFT_EYE_ASPECT_RATIO);
 	print_infof(hmd, "right eye aspect:", 1, OHMD_RIGHT_EYE_ASPECT_RATIO);
 	print_infof(hmd, "distortion k:",     6, OHMD_DISTORTION_K);
-	
+
 	print_infoi(hmd, "digital button count:", 1, OHMD_BUTTON_COUNT);
 
 	printf("\n");
 
 	// Ask for n rotation quaternions
-	for(int i = 0; i < 10000; i++){
+	while(1){
 		ohmd_ctx_update(ctx);
 
 		float zero[] = {.0, .1, .2, 1};
 		ohmd_device_setf(hmd, OHMD_ROTATION_QUAT, zero);
 		ohmd_device_setf(hmd, OHMD_POSITION_VECTOR, zero);
 
+		clearscreen();
 		print_infof(hmd, "rotation quat:", 4, OHMD_ROTATION_QUAT);
 		print_infoi(hmd, "button event count:", 1, OHMD_BUTTON_EVENT_COUNT);
-		
+
 		int event_count = 0;
 
 		ohmd_device_geti(hmd, OHMD_BUTTON_EVENT_COUNT, &event_count);
@@ -108,6 +148,6 @@ int main(int argc, char** argv)
 	}
 
 	ohmd_ctx_destroy(ctx);
-	
+
 	return 0;
 }

@@ -1,5 +1,5 @@
 project (simple)
-include_directories(${CMAKE_BINARY_DIR}/include)
+include_directories(${CMAKE_BINARY_DIR}/include ${CMAKE_BINARY_DIR}/src)
 link_directories(${CMAKE_BINARY_DIR})
-link_libraries (openhmd m)
+link_libraries (openhmd m termcap)
 add_executable(simple simple.c)
