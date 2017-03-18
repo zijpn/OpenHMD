@@ -319,6 +319,7 @@ int main(int argc, char** argv)
 	}
 
 	ohmd_ctx_destroy(ctx);
+	fini_gl(&gl);
 
 	return 0;
 }

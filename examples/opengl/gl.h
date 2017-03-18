@@ -28,6 +28,7 @@ typedef struct {
 void ortho(gl_ctx* ctx);
 void perspective(gl_ctx* ctx);
 void init_gl(gl_ctx* ctx, int w, int h);
+void fini_gl(gl_ctx* ctx);
 void draw_cube();
 GLuint compile_shader(const char* vertex, const char* fragment);
 void create_fbo(int eye_width, int eye_height, GLuint* fbo, GLuint* color_tex, GLuint* depth_tex);

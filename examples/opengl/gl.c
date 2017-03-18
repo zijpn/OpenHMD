@@ -76,6 +76,16 @@ void init_gl(gl_ctx* ctx, int w, int h)
 	glViewport(0, 0, w, h);
 }
 
+void fini_gl(gl_ctx* ctx)
+{
+	// Delete OpenGL context
+	SDL_GL_DeleteContext(ctx->context);
+	// Destroy window
+	SDL_DestroyWindow(ctx->window);
+	// Shutdown SDL
+	SDL_Quit();
+}
+
 void ortho(gl_ctx* ctx)
 {
 	glMatrixMode(GL_PROJECTION);
