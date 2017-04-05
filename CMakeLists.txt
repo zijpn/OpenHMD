@@ -83,7 +83,7 @@ if(OPENHMD_DRIVER_HTC_VIVE)
 	${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/vive.c
 	${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/packet.c
 	)
-	add_definitions(-DDRIVER_DEEPOON)
+	add_definitions(-DDRIVER_HTC_VIVE)
 
 	find_package(HIDAPI REQUIRED)
 	include_directories(${HIDAPI_INCLUDE_DIRS})

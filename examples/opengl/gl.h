@@ -10,7 +10,7 @@
 #ifndef GL_H
 #define GL_H
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include <GL/glew.h>
 #ifdef __APPLE__

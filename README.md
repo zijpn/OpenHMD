@@ -7,7 +7,7 @@ OpenHMD is released under the permissive Boost Software License (see LICENSE for
 ## Supported Devices
   * Oculus Rift DK1, DK2 and CV1 (rotation only)
   * Deepoon E2
-  * HTC Vive (In Development)
+  * HTC Vive (rotation only)
   * PSVR
   * Android based devices
   * External Sensor (passthrough for external sensors)
@@ -84,6 +84,7 @@ Using Make:
     export PREFIX=/usr/i686-w64-mingw32/ (or whatever your mingw path is)
     PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig ./configure --build=`gcc -dumpmachine` --host=i686-w64-mingw32 --prefix=$PREFIX
     make
+    
 the library will end up in the .lib directory, you can use microsoft's lib.exe to make a .lib file for it
 
 Using CMake:
@@ -104,5 +105,3 @@ Will be available soon.
 See the examples/ subdirectory for usage examples. The OpenGL example is not built by default, to build it use the --enable-openglexample option for the configure script. It requires SDL, glew and OpenGL.
 
 An API reference can be generated using doxygen and is also available here: http://openhmd.net/doxygen/0.1.0/openhmd_8h.html
-
-

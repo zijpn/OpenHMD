@@ -133,13 +133,15 @@ struct ohmd_context {
 // helper functions
 void ohmd_set_default_device_properties(ohmd_device_properties* props);
 void ohmd_calc_default_proj_matrices(ohmd_device_properties* props);
+void ohmd_set_universal_distortion_k(ohmd_device_properties* props, float a, float b, float c, float d);
+void ohmd_set_universal_aberration_k(ohmd_device_properties* props, float r, float g, float b);
 
 // drivers
 ohmd_driver* ohmd_create_dummy_drv(ohmd_context* ctx);
 ohmd_driver* ohmd_create_oculus_rift_drv(ohmd_context* ctx);
 ohmd_driver* ohmd_create_deepoon_drv(ohmd_context* ctx);
-ohmd_driver* ohmd_create_psvr_drv(ohmd_context* ctx);
 ohmd_driver* ohmd_create_htc_vive_drv(ohmd_context* ctx);
+ohmd_driver* ohmd_create_psvr_drv(ohmd_context* ctx);
 ohmd_driver* ohmd_create_external_drv(ohmd_context* ctx);
 ohmd_driver* ohmd_create_android_drv(ohmd_context* ctx);
 
