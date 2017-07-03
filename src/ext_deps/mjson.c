@@ -700,6 +700,8 @@ int json_read_array(const char *cp, const struct json_array_t *arr,
 	case t_ignore:
 	    json_debug_trace((1, "Invalid array subtype.\n"));
 	    return JSON_ERR_SUBTYPE;
+	default:
+		break;
 	}
 	arrcount++;
 	if (isspace((unsigned char) *cp))

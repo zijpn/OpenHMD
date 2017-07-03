@@ -13,15 +13,7 @@
 #include <math.h>
 #include "gl.h"
 
-/* DK1 */
-//#define TEST_WIDTH 1280
-//#define TEST_HEIGHT 800
-/* DK2 */
-#define TEST_WIDTH 1920
-#define TEST_HEIGHT 1080
-
-#define EYE_WIDTH (TEST_WIDTH / 2 * 2)
-#define EYE_HEIGHT (TEST_HEIGHT * 2)
+#define OVERSAMPLE_SCALE 2.0
 
 char* read_file(const char* filename)
 {
@@ -79,18 +71,40 @@ GLuint gen_cubes()
 	return list;
 }
 
+void draw_crosshairs(float len, float cx, float cy)
+{
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glBegin(GL_LINES);
+	float l = len/2.0f;
+	glVertex3f(cx - l, cy, 0.0);
+	glVertex3f(cx + l, cy, 0.0);
+	glVertex3f(cx, cy - l, 0.0);
+	glVertex3f(cx, cy + l, 0.0);
+	glEnd();
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+}
+
 void draw_scene(GLuint list)
 {
 	// draw cubes
 	glCallList(list);
 }
+
 static inline void
 print_matrix(float m[])
 {
-    printf("[[%0.4f, %0.4f, %0.4f, %0.4f],\n"
-            "[%0.4f, %0.4f, %0.4f, %0.4f],\n"
-            "[%0.4f, %0.4f, %0.4f, %0.4f],\n"
-            "[%0.4f, %0.4f, %0.4f, %0.4f]]\n",
+    printf("[[%+.4f, %+.4f, %+.4f, %+.4f],\n"
+	       " [%+.4f, %+.4f, %+.4f, %+.4f],\n"
+		   " [%+.4f, %+.4f, %+.4f, %+.4f],\n"
+		   " [%+.4f, %+.4f, %+.4f, %+.4f]]\n",
             m[0], m[4], m[8], m[12],
             m[1], m[5], m[9], m[13],
             m[2], m[6], m[10], m[14],
@@ -101,12 +115,13 @@ int main(int argc, char** argv)
 {
 	ohmd_context* ctx = ohmd_ctx_create();
 	int num_devices = ohmd_ctx_probe(ctx);
-	if(num_devices < 0){
+	if (num_devices < 0){
 		printf("failed to probe devices: %s\n", ohmd_ctx_get_error(ctx));
 		return 1;
 	}
 
 	ohmd_device_settings* settings = ohmd_device_settings_create(ctx);
+	assert(settings);
 
 	// If OHMD_IDS_AUTOMATIC_UPDATE is set to 0, ohmd_ctx_update() must be called at least 10 times per second.
 	// It is enabled by default.
@@ -115,6 +130,18 @@ int main(int argc, char** argv)
 	ohmd_device_settings_seti(settings, OHMD_IDS_AUTOMATIC_UPDATE, &auto_update);
 
 	ohmd_device* hmd = ohmd_list_open_device_s(ctx, 0, settings);
+	if (!hmd){
+		printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
+		return 1;
+	}
+
+	int hmd_w, hmd_h;
+	ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &hmd_w);
+	ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &hmd_h);
+
+	float ipd;
+	ohmd_device_getf(hmd, OHMD_EYE_IPD, &ipd);
+
 	float viewport_scale[2];
 	float distortion_coeffs[4];
 	float aberr_scale[3];
@@ -136,16 +163,12 @@ int main(int argc, char** argv)
 	right_lens_center[0] = sep/2.0f;
 	//asume calibration was for lens view to which ever edge of screen is further away from lens center
 	float warp_scale = (left_lens_center[0] > right_lens_center[0]) ? left_lens_center[0] : right_lens_center[0];
+	float warp_adj = 1.0f;
 
 	ohmd_device_settings_destroy(settings);
 
-	if(!hmd){
-		printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
-		return 1;
-	}
-
 	gl_ctx gl;
-	init_gl(&gl, TEST_WIDTH, TEST_HEIGHT);
+	init_gl(&gl, hmd_w, hmd_h);
 
 	SDL_ShowCursor(SDL_DISABLE);
 
@@ -158,22 +181,22 @@ int main(int argc, char** argv)
 	glUseProgram(shader);
 	glUniform1i(glGetUniformLocation(shader, "warpTexture"), 0);
 	glUniform2fv(glGetUniformLocation(shader, "ViewportScale"), 1, viewport_scale);
-	glUniform1f(glGetUniformLocation(shader, "WarpScale"), warp_scale);
-	glUniform4fv(glGetUniformLocation(shader, "HmdWarpParam"), 1, distortion_coeffs);
 	glUniform3fv(glGetUniformLocation(shader, "aberr"), 1, aberr_scale);
 	glUseProgram(0);
 
 	GLuint list = gen_cubes();
 
+	int eye_w = hmd_w/2 * OVERSAMPLE_SCALE;
+	int eye_h = hmd_h * OVERSAMPLE_SCALE;
 	GLuint left_color_tex = 0, left_depth_tex = 0, left_fbo = 0;
-	create_fbo(EYE_WIDTH, EYE_HEIGHT, &left_fbo, &left_color_tex, &left_depth_tex);
+	create_fbo(eye_w, eye_h, &left_fbo, &left_color_tex, &left_depth_tex);
 
 	GLuint right_color_tex = 0, right_depth_tex = 0, right_fbo = 0;
-	create_fbo(EYE_WIDTH, EYE_HEIGHT, &right_fbo, &right_color_tex, &right_depth_tex);
+	create_fbo(eye_w, eye_h, &right_fbo, &right_color_tex, &right_depth_tex);
 
 
 	bool done = false;
-	bool fullScreen = false;
+	bool crosshair_overlay = false;
 	while(!done){
 		ohmd_ctx_update(ctx);
 
@@ -186,8 +209,8 @@ int main(int argc, char** argv)
 					done = true;
 					break;
 				case SDLK_f:
-					fullScreen = !fullScreen;
-					SDL_SetWindowFullscreen(gl.window, fullScreen);
+					gl.is_fullscreen = !gl.is_fullscreen;
+					SDL_SetWindowFullscreen(gl.window, gl.is_fullscreen);
 					break;
 				case SDLK_r:
 					{
@@ -201,24 +224,40 @@ int main(int argc, char** argv)
 					{
 						float mat[16];
 						ohmd_device_getf(hmd, OHMD_LEFT_EYE_GL_PROJECTION_MATRIX, mat);
-						printf("Projection L: ");
+						printf("Projection L: \n");
 						print_matrix(mat);
-						printf("\n");
 						ohmd_device_getf(hmd, OHMD_RIGHT_EYE_GL_PROJECTION_MATRIX, mat);
-						printf("Projection R: ");
+						printf("Projection R: \n");
 						print_matrix(mat);
-						printf("\n");
 						ohmd_device_getf(hmd, OHMD_LEFT_EYE_GL_MODELVIEW_MATRIX, mat);
-						printf("View: ");
+						printf("View: \n");
 						print_matrix(mat);
-						printf("\n");
 						printf("viewport_scale: [%0.4f, %0.4f]\n", viewport_scale[0], viewport_scale[1]);
+						printf("lens separation: %04f\n", sep);
+						printf("IPD: %0.4f\n", ipd);
 						printf("warp_scale: %0.4f\r\n", warp_scale);
 						printf("distoriton coeffs: [%0.4f, %0.4f, %0.4f, %0.4f]\n", distortion_coeffs[0], distortion_coeffs[1], distortion_coeffs[2], distortion_coeffs[3]);
 						printf("aberration coeffs: [%0.4f, %0.4f, %0.4f]\n", aberr_scale[0], aberr_scale[1], aberr_scale[2]);
 						printf("left_lens_center: [%0.4f, %0.4f]\n", left_lens_center[0], left_lens_center[1]);
-						printf("right_lens_center: [%0.4f, %0.4f]\n", left_lens_center[0], left_lens_center[1]);
+						printf("right_lens_center: [%0.4f, %0.4f]\n", right_lens_center[0], right_lens_center[1]);
 					}
+					break;
+				case SDLK_d:
+					// toggle between distorted and undistorted views
+					if ((distortion_coeffs[0] != 0.0) ||
+                        (distortion_coeffs[1] != 0.0) ||
+                        (distortion_coeffs[2] != 0.0) ||
+                        (distortion_coeffs[3] != 1.0)) {
+                            distortion_coeffs[0] = 0.0;
+                            distortion_coeffs[1] = 0.0;
+                            distortion_coeffs[2] = 0.0;
+                            distortion_coeffs[3] = 1.0;
+                    } else {
+                        ohmd_device_getf(hmd, OHMD_UNIVERSAL_DISTORTION_K, &(distortion_coeffs[0]));
+                    }
+					break;
+				case SDLK_x:
+					crosshair_overlay = ! crosshair_overlay;
 					break;
 				default:
 					break;
@@ -242,12 +281,17 @@ int main(int argc, char** argv)
 
 		// Draw scene into framebuffer.
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, left_fbo);
-		glViewport(0, 0, EYE_WIDTH, EYE_HEIGHT);
+		glViewport(0, 0, eye_w, eye_h);
 		glClearColor(0.0, 0.0, 0.0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		draw_scene(list);
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-
+		if (crosshair_overlay) {
+			glClear(GL_DEPTH_BUFFER_BIT);
+			glLineWidth(2.0 * OVERSAMPLE_SCALE);
+			glColor4f(1.0, 0.5, 0.0, 1.0);
+			draw_crosshairs(0.1, 2*left_lens_center[0]/viewport_scale[0] - 1.0f, 2*left_lens_center[1]/viewport_scale[1] - 1.0f);
+		}
+		//glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
 		// set hmd rotation, for right eye.
 		glMatrixMode(GL_PROJECTION);
@@ -260,9 +304,15 @@ int main(int argc, char** argv)
 
 		// Draw scene into framebuffer.
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, right_fbo);
-		glViewport(0, 0, EYE_WIDTH, EYE_HEIGHT);
+		glViewport(0, 0, eye_w, eye_h);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		draw_scene(list);
+		if (crosshair_overlay) {
+			glClear(GL_DEPTH_BUFFER_BIT);
+			glLineWidth(5.0);
+			glColor4f(1.0, 0.5, 0.0, 1.0);
+			draw_crosshairs(0.1, 2*right_lens_center[0]/viewport_scale[0] - 1.0f, 2*right_lens_center[1]/viewport_scale[1] - 1.0f);
+		}
 
 		// Clean up common draw state
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -272,7 +322,9 @@ int main(int argc, char** argv)
 
 		// Setup ortho state.
 		glUseProgram(shader);
-		glViewport(0, 0, TEST_WIDTH, TEST_HEIGHT);
+		glUniform1f(glGetUniformLocation(shader, "WarpScale"), warp_scale*warp_adj);
+		glUniform4fv(glGetUniformLocation(shader, "HmdWarpParam"), 1, distortion_coeffs);
+		glViewport(0, 0, hmd_w, hmd_h);
 		glEnable(GL_TEXTURE_2D);
 		glColor4d(1, 1, 1, 1);
 

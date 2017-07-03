@@ -192,10 +192,10 @@ static void close_device(ohmd_device* device)
 
 	// turn the display off
 	hret = hid_send_feature_report(priv->hmd_handle, vive_magic_power_off1, sizeof(vive_magic_power_off1));
-	//printf("power off magic 1: %d\n", hret);
+	printf("power off magic 1: %d\n", hret);
 
 	hret = hid_send_feature_report(priv->hmd_handle, vive_magic_power_off2, sizeof(vive_magic_power_off2));
-	//printf("power off magic 2: %d\n", hret);
+	printf("power off magic 2: %d\n", hret);
 
 	hid_close(priv->hmd_handle);
 	hid_close(priv->imu_handle);
@@ -322,6 +322,32 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	// enable lighthouse
 	//hret = hid_send_feature_report(priv->hmd_handle, vive_magic_enable_lighthouse, sizeof(vive_magic_enable_lighthouse));
 	//printf("enable lighthouse magic: %d\n", hret);
+
+	unsigned char buffer[128];
+	int bytes;
+
+	printf("Getting feature report 16 to 39\n");
+	buffer[0] = 16;
+	bytes = hid_get_feature_report(priv->imu_handle, buffer, sizeof(buffer));
+	printf("got %i bytes\n", bytes);
+	for (int i = 0; i < bytes; i++) {
+		printf("%02hhx ", buffer[i]);
+	}
+	printf("\n\n");
+
+	unsigned char* packet_buffer = malloc(4096);
+
+	int offset = 0;
+	while (buffer[1] != 0) {
+		buffer[0] = 17;
+		bytes = hid_get_feature_report(priv->imu_handle, buffer, sizeof(buffer));
+
+ 		memcpy((uint8_t*)packet_buffer + offset, buffer+2, buffer[1]);
+ 		offset += buffer[1];
+	}
+	packet_buffer[offset] = '\0';
+	//printf("Result: %s\n", packet_buffer);
+	vive_decode_config_packet(&priv->vive_config, packet_buffer, offset);
 
 	// Set default device properties
 	ohmd_set_default_device_properties(&priv->base.properties);

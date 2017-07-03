@@ -39,9 +39,13 @@ void init_gl(gl_ctx* ctx, int w, int h)
 		exit(-1);
 	}
 	ctx->context = SDL_GL_CreateContext(ctx->window);
+	ctx->is_fullscreen = 0;
+	ctx->w = w;
+	ctx->h = h;
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	// SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
+	SDL_GL_SetSwapInterval(1);
 
 	// Disable ctrl-c catching on linux (and OS X?)
 	#ifdef __unix
