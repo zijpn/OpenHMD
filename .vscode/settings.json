@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "sdl_rwops.h": "c"
+        "sdl_rwops.h": "c",
+        "gl.h": "c"
     }
 }

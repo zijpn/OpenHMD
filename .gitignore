@@ -6,6 +6,7 @@ tests/unittests/unittests
 *.o
 *.lo
 *.a
+*.so
 *.la
 *.dylib
 *.libs

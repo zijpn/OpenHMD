@@ -210,7 +210,7 @@ int main(int argc, char** argv)
 					break;
 				case SDLK_f:
 					gl.is_fullscreen = !gl.is_fullscreen;
-					SDL_SetWindowFullscreen(gl.window, gl.is_fullscreen);
+					SDL_SetWindowFullscreen(gl.window, gl.is_fullscreen ? SDL_WINDOW_FULLSCREEN : 0);
 					break;
 				case SDLK_r:
 					{

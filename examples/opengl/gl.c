@@ -23,7 +23,7 @@ void init_gl(gl_ctx* ctx, int w, int h)
 {
 	memset(ctx, 0, sizeof(gl_ctx));
 
-	// == Initialize SDL ==
+	// Initialize SDL
 	int ret = SDL_Init(SDL_INIT_VIDEO);
 	if(ret < 0){
 		printf("SDL_Init failed\n");
@@ -33,19 +33,33 @@ void init_gl(gl_ctx* ctx, int w, int h)
 	ctx->window = SDL_CreateWindow("openglexample",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
-		w, h, SDL_WINDOW_OPENGL);
+		w, h,
+		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_MAXIMIZED);
 	if(ctx->window == NULL){
 		printf("SDL_CreateWindow failed\n");
 		exit(-1);
 	}
+
+	// set window bounds into oculus display
+	SDL_DisplayMode current;
+	int rc = SDL_GetCurrentDisplayMode(0, &current);
+	if (rc != 0) {
+    	SDL_Log("Could not get display mode for video display #0: %s", SDL_GetError());
+		exit(-1);
+	}
+	SDL_SetWindowPosition(ctx->window, current.w, 0);
+
 	ctx->context = SDL_GL_CreateContext(ctx->window);
 	ctx->is_fullscreen = 0;
 	ctx->w = w;
 	ctx->h = h;
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	// SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
-	SDL_GL_SetSwapInterval(1);
+	rc = SDL_GL_SetSwapInterval(1);
+	if (rc != 0) {
+    	SDL_Log("SetSwapInterval: %s", SDL_GetError());
+		exit(-1);
+	}
 
 	// Disable ctrl-c catching on linux (and OS X?)
 	#ifdef __unix
